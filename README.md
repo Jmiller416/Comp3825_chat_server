@@ -1,1 +1,4 @@
 # Comp3825_chat_server
+The document will cover the design of the chat server.
+
+A server will spin up and wait for connections to be made from clients. To handle multiple clients the server will make use of multi threading to allow sending and receiving of messages at the same time. When Clients connect to ther server a message will be sent to all clients already connected notifying them that user "x" has connected to the server. From there clients will be able to send messages to a specific specified user based on who is available/connected. If a user disconnects the server will send out a message to all currently connected users notifying them that client "y" has disconnected. Users will be able to disconnect from the chat server by typing ".exit" which will close the connection from the client.
