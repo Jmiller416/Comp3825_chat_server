@@ -1,12 +1,23 @@
 import socket
 import threading
+import configparser
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(('0.0.0.0', 1234))
-sock.listen(2)
 connections = []
 peers = []
-print("Server ready to connect")
+
+def setup_server():
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    port = 1234
+
+    if 'server' in config:
+        if 'port' in config['server']:
+            port = int(config['server']['port'])
+
+    sock.bind(('', port))
+    sock.listen(2)
+    print("Server ready to connect on port %d" % port)
 
 
 def handler(con, addr):
@@ -31,6 +42,7 @@ def send_peers():
     for connection in connections:
         connection.send(b'\x11' + bytes(p, "utf-8"))
 
+setup_server()
 
 while True:
     con, addr = sock.accept()
