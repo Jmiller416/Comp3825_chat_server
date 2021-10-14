@@ -1,0 +1,28 @@
+D1: DONE
+Submit a design document for the chat application by 11:59 pm, Oct 3. In addition to the text description, use class diagram, 
+flow chart, or state transition diagram to explain your tentative implementation and design. (10 pts)
+
+D2:
+Due October 17 at 11:59 PM
+Submit code framework for both client and server by 11:59 pm, Oct 17. 
+It should have the major data structures and functions (APIs) defined based on the design document. (15 pts)
+
+D3:
+Due October 30 at 11:59 PM
+Submit code showing the connection between clients and server by 11:59 pm, Oct 30. 
+It should show how the server assigns unique identification for each client. (15 pts)
+
+D4:
+Due November 16 at 11:59 PM
+In class presentation, files submitted on e-learn. (30 pts)
+
+D5:
+Due November 21 at 11:59 PM
+Submit a final report (>= 3 pages) including design and evaluation results in the report, 
+and final code showing:
+
+    1. Communication between the clients
+    2. Instructions on how to install and run the program
+    3. Screenshots of the input and output.
+
+Due by 11:59 pm, Nov 21 (30 pts)
