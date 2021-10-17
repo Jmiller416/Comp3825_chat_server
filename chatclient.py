@@ -2,11 +2,14 @@ import socket
 import threading
 import configparser
 import shortuuid
-
+import os
 PROMPT = '(you)> '
+CONNECTED = False
 
 
 def get_config() -> tuple[str, int, str]:
+    global PROMPT
+
     config = configparser.ConfigParser()
     config.read('config.ini')
 
@@ -24,12 +27,15 @@ def get_config() -> tuple[str, int, str]:
         if 'username' in config['client']:
             username = config['client']['username']
 
+        PROMPT = ("%s (you)> " % username)
         return host, port, username
     else:
         exit(2)
 
 
 def create_client():
+    global CONNECTED
+
     # Create the socket instance for use later
     sock = socket.socket()
 
@@ -42,24 +48,30 @@ def create_client():
         # Create a thread for processing messages
         threading.Thread(target=receive_messages, args=[sock, username]).start()
 
-        while True:
+        while CONNECTED:
             next_message = input(PROMPT)
 
-            if next_message == 'quit' or next_message == 'exit':
+            if next_message == '.quit' or next_message == '.exit':
+                sock.send("has disconnected".encode('utf-8'))
+                CONNECTED = False
                 break
 
             sock.send(next_message.encode())
 
         # Close the socket when we're done
-        sock.close()
+        os.close(sock.fileno())
 
-    except Exception as e:
-        print(e)
-        sock.close()
+    except Exception as err:
+        print(err)
+        os.close(sock.fileno())
 
 
 def receive_messages(conn: socket.socket, username: str):
-    while True:
+    global CONNECTED
+
+    CONNECTED = True
+
+    while CONNECTED:
         try:
             last_data = conn.recv(1024)
 
@@ -70,12 +82,11 @@ def receive_messages(conn: socket.socket, username: str):
                 else:
                     print('\r' + last_message + '\n' + PROMPT, end='')
             else:
-                conn.close()
+                os.close(conn.fileno())
                 break
 
         except Exception as err:
             print(err)
-            conn.close()
             break
 
 
