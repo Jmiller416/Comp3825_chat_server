@@ -1,20 +1,19 @@
 import socket
 import threading
 import configparser
+import shortuuid
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+PROMPT = '(you)> '
 
 
-def connect_server(host, port):
-    sock.connect((host, port))
-
-def configure_and_connect():
+def get_config() -> tuple[str, int, str]:
     config = configparser.ConfigParser()
     config.read('config.ini')
 
     if 'client' in config:
         host = '0.0.0.0'
         port = 1234
+        username = shortuuid.uuid()
 
         if 'host' in config['client']:
             host = config['client']['host']
@@ -22,45 +21,63 @@ def configure_and_connect():
         if 'port' in config['client']:
             port = int(config['client']['port'])
 
-        print("Connecting to host %s:%d" % (host, port))
-        connect_server(host, port)
+        if 'username' in config['client']:
+            username = config['client']['username']
+
+        return host, port, username
     else:
         exit(2)
 
-def send_message():
-    while True:
-        message = input()
-        if message == '.exit':
-            sock.close()
-        else:
-            sock.send(bytes(input(""), 'utf-8'))
+
+def create_client():
+    # Create the socket instance for use later
+    sock = socket.socket()
+
+    try:
+        # Fetch the host and port from the get_config function
+        host, port, username = get_config()
+
+        sock.connect((host, port))
+
+        # Create a thread for processing messages
+        threading.Thread(target=receive_messages, args=[sock, username]).start()
+
+        while True:
+            next_message = input(PROMPT)
+
+            if next_message == 'quit' or next_message == 'exit':
+                break
+
+            sock.send(next_message.encode())
+
+        # Close the socket when we're done
+        sock.close()
+
+    except Exception as e:
+        print(e)
+        sock.close()
 
 
-
-
-def update_peers(peer_data):
-    peers = str(peer_data).split(",")[:-1]
-
-def receive(self):
+def receive_messages(conn: socket.socket, username: str):
     while True:
         try:
-            last_message = sock.recv(1024).decode('utf-8')
+            last_data = conn.recv(1024)
 
-            if last_message == '%IDENTIFY':
-                sock.send(self.name.encode('utf-8'))
+            if last_data:
+                last_message = last_data.decode('utf-8')
+                if last_message == '%IDENTIFY':
+                    conn.send(username.encode('utf-8'))
+                else:
+                    print('\r' + last_message + '\n' + PROMPT, end='')
             else:
-                print(last_message + "\r\n")
-        except:
-            print("An error occured!")
-            sock.close()
+                conn.close()
+                break
+
+        except Exception as err:
+            print(err)
+            conn.close()
             break
 
 
-def setup():
-    configure_and_connect()
-    client_thread = threading.Thread(target=receive)
-    client_thread.daemon = True
-    client_thread.start()
-
-
-setup()
+if __name__ == '__main__':
+    create_client()

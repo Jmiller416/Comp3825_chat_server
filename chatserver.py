@@ -2,11 +2,11 @@ import socket
 import threading
 import configparser
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connections = []
-peers = []
+users = {}
 
-def setup_server():
+
+def get_config() -> tuple[str, int]:
     config = configparser.ConfigParser()
     config.read('config.ini')
     port = 1234
@@ -16,43 +16,78 @@ def setup_server():
             port = int(config['server']['port'])
 
     server = ''
-    address = (server, port)
+    return server, port
 
-    sock.bind(address)
-    sock.listen(2)
-    print("Server ready to connect at %s:%d" % (server, port))
+
+def send_to_peers(message: str, addr: any, connection: socket.socket):
+    for conn in connections:
+        if conn != connection:
+            formatted_message = ("%s> %s" % (users[addr[0]], message))
+
+            try:
+                conn.send(formatted_message.encode('utf-8'))
+
+            except Exception as e:
+                print(e)
+                terminate_connection(conn, addr)
 
 
 def handler(conn, addr):
-    connected = True
+    while True:
+        try:
+            data = conn.recv(1024)
 
-    while connected:
-        message = conn.recv(1024)
-        send_peers(message)
+            if data:
+                user_message = data.decode('utf-8')
+                send_to_peers(user_message, addr, conn)
+            else:
+                terminate_connection(conn, addr)
+                break
 
-    conn.close()
+        except Exception as e:
+            print(e)
+            terminate_connection(conn, None)
+            break
 
 
-def send_peers(msg):
-    for connection in connections:
-        connection.send(msg)
+def terminate_connection(conn: socket.socket, addr: any):
+    if conn in connections:
+        conn.close()
+        connections.remove(conn)
 
-setup_server()
+        if addr:
+            del users[addr[0]]
 
-while True:
-    con, addr = sock.accept()
 
-    con.send("%IDENTIFY".encode('utf-8'))
+def create_server():
+    server, port = get_config()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    client_id = con.recv(1024).decode('utf-8')
+    try:
+        sock.bind((server, port))
+        sock.listen(4)
 
-    connections.append(con)
-    peers.append(client_id)
+        print("Server ready to connect at %s:%d" % (server, port))
 
-    send_peers(f"{client_id} has joined the chat!".encode('utf-8'))
-    con.send('Connection successful!'.encode('utf-8'))
+        while True:
+            conn, addr = sock.accept()
+            conn.send("%IDENTIFY".encode('utf-8'))
+            username = conn.recv(1024).decode('utf-8')
 
-    client_thread = threading.Thread(target=handler, args=(con, addr))
-    client_thread.daemon = True
-    client_thread.start()
+            users[addr[0]] = username
+            connections.append(conn)
+            print("New user connected: %s" % username)
+            threading.Thread(target=handler, args=[conn, addr]).start()
 
+    except Exception as e:
+        print(e)
+    finally:
+        if len(connections) > 0:
+            for conn in connections:
+                terminate_connection(conn, addr)
+
+        sock.close()
+
+
+if __name__ == "__main__":
+    create_server()
