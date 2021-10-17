@@ -1,6 +1,16 @@
 # Comp3825_chat_server
 The document will cover the design of the chat server.
 
+
+## Setup
+
+Please install the pip requirements using pip/pip3 depending on how your installed Python3:
+
+```bash
+pip3 install -r requirements.txt
+```
+
+## Design
 <body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>
 
 <div class=WordSection1>

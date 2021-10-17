@@ -2,11 +2,11 @@ import socket
 import threading
 import configparser
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connections = []
-peers = []
+users = {}
 
-def setup_server():
+
+def get_config() -> tuple[str, int]:
     config = configparser.ConfigParser()
     config.read('config.ini')
     port = 1234
@@ -15,41 +15,79 @@ def setup_server():
         if 'port' in config['server']:
             port = int(config['server']['port'])
 
-    sock.bind(('', port))
-    sock.listen(2)
-    print("Server ready to connect on port %d" % port)
+    server = ''
+    return server, port
 
 
-def handler(con, addr):
+def send_to_peers(message: str, addr: any, connection: socket.socket):
+    for conn in connections:
+        if conn != connection:
+            formatted_message = ("%s> %s" % (users[addr[0]], message))
+
+            try:
+                conn.send(formatted_message.encode('utf-8'))
+
+            except Exception as e:
+                print(e)
+                terminate_connection(conn, addr)
+
+
+def handler(conn, addr):
     while True:
-        data = con.recv(1024)
-        for connection in connections:
-            connection.send(data)
-            if not data:
-                print(str(addr[0]) + ':' + str(addr[1]), "disconnected")
-                connections.remove(con)
-                peers.remove(addr[0])
-                con.close()
-                send_peers()
+        try:
+            data = conn.recv(1024)
+
+            if data:
+                user_message = data.decode('utf-8')
+                send_to_peers(user_message, addr, conn)
+            else:
+                terminate_connection(conn, addr)
                 break
 
+        except Exception as e:
+            print(e)
+            terminate_connection(conn, None)
+            break
 
-# this is not functional needs to be fixed
-def send_peers():
-    p = ''
-    for peer in peers:
-        p = p + peer + ","
-    for connection in connections:
-        connection.send(b'\x11' + bytes(p, "utf-8"))
 
-setup_server()
+def terminate_connection(conn: socket.socket, addr: any):
+    if conn in connections:
+        conn.close()
+        connections.remove(conn)
 
-while True:
-    con, addr = sock.accept()
-    client_thread = threading.Thread(target=handler, args=(con, addr))
-    client_thread.daemon = True
-    client_thread.start()
-    connections.append(con)
-    peers.append(addr[0])
-    print(str(addr[0]) + ':' + str(addr[1]), "connected")
-    send_peers()
+        if addr:
+            del users[addr[0]]
+
+
+def create_server():
+    server, port = get_config()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        sock.bind((server, port))
+        sock.listen(4)
+
+        print("Server ready to connect at %s:%d" % (server, port))
+
+        while True:
+            conn, addr = sock.accept()
+            conn.send("%IDENTIFY".encode('utf-8'))
+            username = conn.recv(1024).decode('utf-8')
+
+            users[addr[0]] = username
+            connections.append(conn)
+            print("New user connected: %s" % username)
+            threading.Thread(target=handler, args=[conn, addr]).start()
+
+    except Exception as e:
+        print(e)
+    finally:
+        if len(connections) > 0:
+            for conn in connections:
+                terminate_connection(conn, addr)
+
+        sock.close()
+
+
+if __name__ == "__main__":
+    create_server()
