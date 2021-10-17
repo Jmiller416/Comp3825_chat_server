@@ -37,21 +37,30 @@ def send_message():
 
 
 
-configure_and_connect()
-client_thread = threading.Thread(target=send_message)
-client_thread.daemon = True
-client_thread.start()
-
 
 def update_peers(peer_data):
     peers = str(peer_data).split(",")[:-1]
 
+def receive(self):
+    while True:
+        try:
+            last_message = sock.recv(1024).decode('utf-8')
 
-while True:
-    data = sock.recv(1024)
-    if not data:
-        break
-    if data[0:1] == b'\x11':
-        update_peers(data[1:])
-    else:
-        print(str(data))
+            if last_message == '%IDENTIFY':
+                sock.send(self.name.encode('utf-8'))
+            else:
+                print(last_message + "\r\n")
+        except:
+            print("An error occured!")
+            sock.close()
+            break
+
+
+def setup():
+    configure_and_connect()
+    client_thread = threading.Thread(target=receive)
+    client_thread.daemon = True
+    client_thread.start()
+
+
+setup()

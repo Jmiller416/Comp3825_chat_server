@@ -15,41 +15,44 @@ def setup_server():
         if 'port' in config['server']:
             port = int(config['server']['port'])
 
-    sock.bind(('', port))
+    server = ''
+    address = (server, port)
+
+    sock.bind(address)
     sock.listen(2)
-    print("Server ready to connect on port %d" % port)
+    print("Server ready to connect at %s:%d" % (server, port))
 
 
-def handler(con, addr):
-    while True:
-        data = con.recv(1024)
-        for connection in connections:
-            connection.send(data)
-            if not data:
-                print(str(addr[0]) + ':' + str(addr[1]), "disconnected")
-                connections.remove(con)
-                peers.remove(addr[0])
-                con.close()
-                send_peers()
-                break
+def handler(conn, addr):
+    connected = True
+
+    while connected:
+        message = conn.recv(1024)
+        send_peers(message)
+
+    conn.close()
 
 
-# this is not functional needs to be fixed
-def send_peers():
-    p = ''
-    for peer in peers:
-        p = p + peer + ","
+def send_peers(msg):
     for connection in connections:
-        connection.send(b'\x11' + bytes(p, "utf-8"))
+        connection.send(msg)
 
 setup_server()
 
 while True:
     con, addr = sock.accept()
+
+    con.send("%IDENTIFY".encode('utf-8'))
+
+    client_id = con.recv(1024).decode('utf-8')
+
+    connections.append(con)
+    peers.append(client_id)
+
+    send_peers(f"{client_id} has joined the chat!".encode('utf-8'))
+    con.send('Connection successful!'.encode('utf-8'))
+
     client_thread = threading.Thread(target=handler, args=(con, addr))
     client_thread.daemon = True
     client_thread.start()
-    connections.append(con)
-    peers.append(addr[0])
-    print(str(addr[0]) + ':' + str(addr[1]), "connected")
-    send_peers()
+
