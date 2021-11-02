@@ -1,55 +1,18 @@
 from tkinter import *
+from tkinter import simpledialog
 
 
 class GUI:
-    def __init__(self, send_message_handler, start_chatting_handler):
-        self.send_message_handler = send_message_handler
-        self.start_chatting_handler = start_chatting_handler
+    def __init__(self, client, debug=False):
+        self.client = client
+
+        self.chat_message = None
+        self.debug = debug
 
         # Create a chat window and then hide it
         self.chat_window = Tk()
-        self.chat_window.withdraw()
 
-        # Create a login window
-        self.login_window = Toplevel()
-        self.login_window_prompt = Label(self.login_window, text="Welcome", justify=CENTER)
-        self.login_window_prompt.place(relheight=0.15, relx=0.2, rely=0.07)
-
-        # Create the 'Username:' label
-        self.login_username_label = Label(self.login_window, text="Username: ")
-        self.login_username_label.place(relheight=0.2, relx=0.1, rely=0.2)
-
-        # Create the username input box
-        self.username_input = Entry(self.login_window)
-        self.username_input.place(relwidth=0.4, relheight=0.12, relx=0.35, rely=0.2)
-
-        # Focus the cursor on the username input
-        self.username_input.focus()
-
-        # Create a button to connect to the chat session
-        self.connect_button = Button(self.login_window, text="Connect",
-                                     command=lambda: self.start_chatting(self.username_input.get()))
-
-        self.connect_button.place(relx=0.4, rely=0.55)
-
-        # Finally, start the main event loop
-        self.chat_window.mainloop()
-
-    def start_chatting(self, username):
-        self.login_window.destroy()
-        self.layout_chat_window(username)
-        self.start_chatting_handler(username)
-
-    def layout_chat_window(self, username):
-        self.username = username
-
-        # Show the chat window
-        self.chat_window.deiconify()
-        self.chat_window.title("Chat App")
-        self.chat_window.resizable(width=False, height=False)
-        self.chat_window.configure(width=480, height=550, bg="#17202A")
-
-        self.username_label = Label(self.chat_window, bg="#17202A", fg="#EAECEE", text=self.username, pady=5)
+        self.username_label = Label(self.chat_window, bg="#17202A", fg="#EAECEE", pady=5)
         self.username_label.place(relwidth=1)
 
         self.chat_line = Label(self.chat_window, width=480, bg="#ABB2B9")
@@ -77,9 +40,35 @@ class GUI:
                                   width=20,
                                   bg="#ABB2B9",
                                   command=lambda: self.handle_send(self.message_input.get()))
-
         self.send_button.place(relx=0.77, rely=0.008, relheight=0.06, relwidth=0.22)
 
+        self.quit_button = Button(self.chat_window, text="Quit", command=self.quit)
+        self.quit_button.pack(pady=20)
+        self.quit_button.place(relx=0.77, rely=0.012, relheight=0.06, relwidth=0.22)
+
+        self.chat_window.withdraw()
+
+        self.username = simpledialog.askstring(title="Start Chatting", prompt="Enter a username")
+
+        if self.username is None:
+            exit(0)
+
+    def start_chatting(self):
+        self.layout_chat_window(self.username)
+        self.client.start_chatting(username=self.username)
+        self.chat_window.mainloop()
+        exit(0)
+
+    def layout_chat_window(self, username):
+        self.username = username
+
+        # Show the chat window
+        self.chat_window.deiconify()
+        self.chat_window.title("Chat App")
+        self.chat_window.resizable(width=False, height=False)
+        self.chat_window.configure(width=480, height=550, bg="#17202A")
+
+        self.username_label.text = username
         self.chat_contents.config(cursor="arrow")
 
         # They see me scrollin, they hatin
@@ -90,16 +79,27 @@ class GUI:
         self.chat_contents.config(state=DISABLED)
 
     def handle_send(self, chat_message):
+        self.debug_print("Sending message - '%s'" % chat_message)
         self.chat_contents.config(state=DISABLED)
         self.chat_message = chat_message
         self.message_input.delete(0, END)
 
         # Passed on init
         self.chat_contents.config(state=DISABLED)
-        self.send_message_handler(chat_message)
+        self.client.send_message(next_message=chat_message)
+        self.message_received("(you) > %s" % chat_message)
 
     def message_received(self, message):
+        self.debug_print("Received message - '%s'" % message)
         self.chat_contents.config(state=NORMAL)
         self.chat_contents.insert(END, message + "\n\n")
         self.chat_contents.config(state=DISABLED)
         self.chat_contents.see(END)
+
+    def quit(self):
+        self.chat_window.destroy()
+        self.client.quit()
+
+    def debug_print(self, debug_msg):
+        if self.debug:
+            print("GUI-DBG: %s" % debug_msg)

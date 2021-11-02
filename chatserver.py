@@ -60,6 +60,10 @@ def terminate_connection(conn: socket.socket, addr: any):
         if addr:
             del users[addr[0]]
 
+def broadcast_message(message):
+    for conn in connections:
+        conn.send(message.encode('utf-8'))
+
 
 def create_server():
     server, port = get_config()
@@ -79,6 +83,8 @@ def create_server():
             users[addr[0]] = username
             connections.append(conn)
             print("New user connected: %s" % username)
+            broadcast_message("New user connected: %s" % username)
+
             threading.Thread(target=handler, args=[conn, addr]).start()
 
     except Exception as e:
