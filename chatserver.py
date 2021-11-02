@@ -2,11 +2,13 @@ import socket
 import threading
 import configparser
 
+from typing import Tuple
+
 connections = []
 users = {}
 
 
-def get_config() -> tuple[str, int]:
+def get_config() -> Tuple[str, int]:
     config = configparser.ConfigParser()
     config.read('config.ini')
     port = 1234

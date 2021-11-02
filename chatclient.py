@@ -3,92 +3,84 @@ import threading
 import configparser
 import shortuuid
 import os
-PROMPT = '(you)> '
-CONNECTED = False
+
+from typing import Tuple
+
+from gui import GUI
 
 
-def get_config() -> tuple[str, int, str]:
-    global PROMPT
+class ChatClient:
+    def __init__(self):
+        self.connected = False
+        self.identifier = shortuuid.uuid()
+        self.sock = socket.socket()
+        self.username = self.identifier
+        self.gui = GUI(self.send_message, self.start_chatting)
 
-    config = configparser.ConfigParser()
-    config.read('config.ini')
+    def receive_messages(self):
+        self.connected = True
 
-    if 'client' in config:
-        host = '0.0.0.0'
-        port = 1234
-        username = shortuuid.uuid()
+        while self.connected:
+            try:
+                last_data = self.sock.recv(1024)
 
-        if 'host' in config['client']:
-            host = config['client']['host']
-
-        if 'port' in config['client']:
-            port = int(config['client']['port'])
-
-        if 'username' in config['client']:
-            username = config['client']['username']
-
-        PROMPT = ("%s (you)> " % username)
-        return host, port, username
-    else:
-        exit(2)
-
-
-def create_client():
-    global CONNECTED
-
-    # Create the socket instance for use later
-    sock = socket.socket()
-
-    try:
-        # Fetch the host and port from the get_config function
-        host, port, username = get_config()
-
-        sock.connect((host, port))
-
-        # Create a thread for processing messages
-        threading.Thread(target=receive_messages, args=[sock, username]).start()
-
-        while CONNECTED:
-            next_message = input(PROMPT)
-
-            if next_message == '.quit' or next_message == '.exit':
-                sock.send("has disconnected".encode('utf-8'))
-                CONNECTED = False
-                break
-
-            sock.send(next_message.encode())
-
-        # Close the socket when we're done
-        os.close(sock.fileno())
-
-    except Exception as err:
-        print(err)
-        os.close(sock.fileno())
-
-
-def receive_messages(conn: socket.socket, username: str):
-    global CONNECTED
-
-    CONNECTED = True
-
-    while CONNECTED:
-        try:
-            last_data = conn.recv(1024)
-
-            if last_data:
-                last_message = last_data.decode('utf-8')
-                if last_message == '%IDENTIFY':
-                    conn.send(username.encode('utf-8'))
+                if last_data:
+                    last_message = last_data.decode('utf-8')
+                    if last_message == '%IDENTIFY':
+                        self.sock.send(self.username.encode('utf-8'))
+                    else:
+                        self.gui.message_received(last_message)
                 else:
-                    print('\r' + last_message + '\n' + PROMPT, end='')
-            else:
-                os.close(conn.fileno())
+                    os.close(self.sock.fileno())
+                    break
+
+            except Exception as err:
+                print(err)
                 break
 
-        except Exception as err:
-            print(err)
+    def send_message(self, next_message):
+        while True:
+            if next_message == '.quit' or next_message == '.exit':
+                self.sock.send("has disconnected".encode('utf-8'))
+                self.connected = False
+            else:
+                self.sock.send(next_message.encode())
+
             break
+
+    def get_config(self) -> Tuple[str, int]:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
+        if 'client' in config:
+            host = '0.0.0.0'
+            port = 1234
+
+            if 'host' in config['client']:
+                host = config['client']['host']
+
+            if 'port' in config['client']:
+                port = int(config['client']['port'])
+
+            return host, port
+        else:
+            exit(2)
+
+    def start_chatting(self, username):
+        try:
+            # Fetch the host and port from the get_config function
+            host, port = self.get_config()
+
+            self.username = username
+            self.sock.connect((host, port))
+
+            # Create a thread for processing messages
+            threading.Thread(target=self.receive_messages).start()
+
+        except Exception as e:
+            print(e)
+            self.sock.close()
 
 
 if __name__ == '__main__':
-    create_client()
+    chat_client = ChatClient()
