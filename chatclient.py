@@ -8,8 +8,8 @@ import time
 
 from typing import Tuple
 
-from chatthread import ChatThread
-from gui import GUI
+from lib.chatthread import ChatThread
+from lib.gui import GUI
 
 
 class ChatClient:
@@ -101,7 +101,8 @@ class ChatClient:
 
         except Exception as e:
             print(e)
-            self.gui.quit()
+            self.gui.show_error(e, "Could not connect to server")
+            self.gui.request_username()
 
     def quit(self):
         self.disconnect_event.set()

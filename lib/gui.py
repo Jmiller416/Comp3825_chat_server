@@ -1,54 +1,73 @@
+import tkinter
 from tkinter import *
 from tkinter import simpledialog
+from tkinter import messagebox
+from tkinter.ttk import Style
 
 
 class GUI:
     def __init__(self, client, debug=False):
         self.client = client
-
+        self.username = None
         self.chat_message = None
         self.debug = debug
 
         # Create a chat window and then hide it
-        self.chat_window = Tk()
+        self.window = Tk()
+        self.username_label_contents = StringVar()
+        self.window.bind('<Configure>', self.resize)
 
-        self.username_label = Label(self.chat_window, bg="#17202A", fg="#EAECEE", pady=5)
-        self.username_label.place(relwidth=1)
+        self.chat_window = Canvas(self.window)
+        self.chat_window.style = Style()
+        self.chat_window.style.theme_use("default")
+
+        self.top_frame = Frame(self.window, relief=RAISED, borderwidth=1, height=20)
+        self.top_frame.pack(expand=True, fill='x', anchor=N)
+
+        self.username_label = Label(self.top_frame, textvariable=self.username_label_contents)
+        self.username_label.pack(expand=True, fill='both', side=tkinter.LEFT)
+
+        self.quit_button = Button(self.top_frame, text="Quit", command=self.quit)
+        self.quit_button.pack(padx=10, side=tkinter.LEFT)
 
         self.chat_line = Label(self.chat_window, width=480, bg="#ABB2B9")
         self.chat_line.place(relwidth=1, rely=0.07, relheight=0.012)
 
+        self.chat_window.pack(fill=BOTH, expand=TRUE, anchor=CENTER)
+        self.chat_window.grid_rowconfigure(1, weight=1)
+        self.chat_window.grid_columnconfigure(1, weight=1)
+
         self.chat_contents = Text(self.chat_window,
                                   width=20,
-                                  height=2,
                                   bg="#17202A",
                                   fg="#EAECEE",
                                   padx=5,
                                   pady=5)
 
-        self.chat_contents.place(relheight=0.745, relwidth=1, rely=0.08)
+        self.chat_contents.pack(expand=True, fill=BOTH, anchor=CENTER, side=BOTTOM)
+        self.chat_contents.grid(row=1, column=1, sticky="nsew")
+        self.bottom_frame = Frame(self.window, relief=RAISED, borderwidth=1)
+        self.bottom_frame.pack(expand=True, fill='x', anchor=S)
 
-        self.bottom_label = Label(self.chat_window, bg="#ABB2B9", height=80)
-        self.bottom_label.place(relwidth=1, rely=0.825)
+        self.message_input = Entry(self.bottom_frame, bg="#2C3E50", fg="#EAECEE")
+        self.message_input.pack(expand=True, fill='both', side=tkinter.LEFT)
 
-        self.message_input = Entry(self.bottom_label, bg="#2C3E50", fg="#EAECEE")
-        self.message_input.place(relwidth=0.74, relheight=0.06, rely=0.008, relx=0.011)
         self.message_input.focus()
 
-        self.send_button = Button(self.bottom_label,
+        self.send_button = Button(master=self.bottom_frame,
                                   text="Send",
-                                  width=20,
-                                  bg="#ABB2B9",
+                                  width=40,
                                   command=lambda: self.handle_send(self.message_input.get()))
-        self.send_button.place(relx=0.77, rely=0.008, relheight=0.06, relwidth=0.22)
 
-        self.quit_button = Button(self.chat_window, text="Quit", command=self.quit)
-        self.quit_button.pack(pady=20)
-        self.quit_button.place(relx=0.77, rely=0.012, relheight=0.06, relwidth=0.22)
+        self.send_button.pack(side=tkinter.RIGHT)
 
-        self.chat_window.withdraw()
+        self.request_username()
 
+    def request_username(self):
+        self.username = None
+        self.window.withdraw()
         self.username = simpledialog.askstring(title="Start Chatting", prompt="Enter a username")
+        self.username_label_contents.set("Hello " + self.username)
 
         if self.username is None:
             exit(0)
@@ -56,24 +75,23 @@ class GUI:
     def start_chatting(self):
         self.layout_chat_window(self.username)
         self.client.start_chatting(username=self.username)
-        self.chat_window.mainloop()
+        self.window.mainloop()
         exit(0)
 
     def layout_chat_window(self, username):
         self.username = username
 
         # Show the chat window
-        self.chat_window.deiconify()
-        self.chat_window.title("Chat App")
-        self.chat_window.resizable(width=False, height=False)
-        self.chat_window.configure(width=480, height=550, bg="#17202A")
+        self.window.deiconify()
+        self.window.title("Chat App")
+        self.window.resizable(width=False, height=False)
+        self.window.configure(width=480, height=550, bg="#17202A")
 
-        self.username_label.text = username
         self.chat_contents.config(cursor="arrow")
 
         # They see me scrollin, they hatin
-        scrollbar = Scrollbar(self.chat_contents)
-        scrollbar.place(relheight=1, relx=0.974)
+        scrollbar = Scrollbar(self.chat_window, orient=VERTICAL)
+        scrollbar.grid(row=1, column=2, sticky="ns")
         scrollbar.config(command=self.chat_contents.yview)
 
         self.chat_contents.config(state=DISABLED)
@@ -99,6 +117,14 @@ class GUI:
     def quit(self):
         self.chat_window.destroy()
         self.client.quit()
+
+    def resize(self, event):
+        w, h = event.width - 100, event.height - 100
+        self.window.config(width=w, height=h)
+
+    @staticmethod
+    def show_error(message, title="Error"):
+        messagebox.showerror(title, message)
 
     def debug_print(self, debug_msg):
         if self.debug:
