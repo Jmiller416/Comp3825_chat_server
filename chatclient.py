@@ -112,7 +112,7 @@ class ChatClient:
         self.disconnect_event.set()
 
         if self.connected is True:
-            self.chat_thread.join()
+            self.chat_thread.stop()
 
         self.connected = False
         sys.exit()

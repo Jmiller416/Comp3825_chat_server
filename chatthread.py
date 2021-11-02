@@ -7,17 +7,13 @@ class ChatThread(threading.Thread):
         self._sleep_time = sleep_time
         self.func = func
 
-        """call base class constructor"""
-        super().__init__()
+        super().__init__(daemon=True)
 
     def run(self):
-        """main control loop"""
+        print(self.isDaemon())
         while not self._stop_event.is_set():
-            # do work
             self.func()
             self._stop_event.wait(self._sleep_time)
 
-    def join(self, timeout=None):
-        """set stop event and join within a given time period"""
+    def stop(self, timeout=None):
         self._stop_event.set()
-        super().join(timeout)
