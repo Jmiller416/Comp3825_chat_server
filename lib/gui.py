@@ -21,7 +21,7 @@ class GUI:
         self.chat_window.style = Style()
         self.chat_window.style.theme_use("default")
 
-        self.top_frame = Frame(self.window, relief=RAISED, borderwidth=1, height=20)
+        self.top_frame = Frame(self.window, height=20)
         self.top_frame.pack(expand=True, fill='x', anchor=N)
 
         self.username_label = Label(self.top_frame, textvariable=self.username_label_contents)
@@ -46,8 +46,8 @@ class GUI:
 
         self.chat_contents.pack(expand=True, fill=BOTH, anchor=CENTER, side=BOTTOM)
         self.chat_contents.grid(row=1, column=1, sticky="nsew")
-        self.bottom_frame = Frame(self.window, relief=RAISED, borderwidth=1)
-        self.bottom_frame.pack(expand=True, fill='x', anchor=S)
+        self.bottom_frame = Frame(self.window)
+        self.bottom_frame.pack(expand=True, fill='x', anchor=S, padx=5, pady=5)
 
         self.message_input = Entry(self.bottom_frame, bg="#2C3E50", fg="#EAECEE")
         self.message_input.pack(expand=True, fill='both', side=tkinter.LEFT)
@@ -56,10 +56,9 @@ class GUI:
 
         self.send_button = Button(master=self.bottom_frame,
                                   text="Send",
-                                  width=40,
                                   command=lambda: self.handle_send(self.message_input.get()))
 
-        self.send_button.pack(side=tkinter.RIGHT)
+        self.send_button.pack(side=tkinter.LEFT)
 
         self.request_username()
 
