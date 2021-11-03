@@ -51,8 +51,7 @@ class GUI:
 
         self.message_input = Entry(self.bottom_frame, bg="#2C3E50", fg="#EAECEE")
         self.message_input.pack(expand=True, fill='both', side=tkinter.LEFT)
-
-        self.message_input.focus()
+        self.message_input.bind('<Return>', self.handle_enter)
 
         self.send_button = Button(master=self.bottom_frame,
                                   text="Send",
@@ -95,6 +94,7 @@ class GUI:
         scrollbar.grid(row=1, column=2, sticky="ns")
         scrollbar.config(command=self.chat_contents.yview)
 
+        self.message_input.focus()
         self.chat_contents.config(state=DISABLED)
 
     def handle_send(self, chat_message):
@@ -106,7 +106,7 @@ class GUI:
         # Passed on init
         self.chat_contents.config(state=DISABLED)
         self.client.send_message(next_message=chat_message)
-        self.message_received("(you) > %s" % chat_message)
+        self.message_received("%s (you)> %s" % (self.username, chat_message))
 
     def message_received(self, message):
         self.debug_print("Received message - '%s'" % message)
@@ -122,6 +122,9 @@ class GUI:
     def resize(self, event):
         w, h = event.width - 100, event.height - 100
         self.window.config(width=w, height=h)
+
+    def handle_enter(self, ev):
+        self.handle_send(self.message_input.get())
 
     @staticmethod
     def show_error(message, title="Error"):

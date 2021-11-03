@@ -28,7 +28,7 @@ class ChatServer:
                 connection.send("%IDENTIFY".encode('utf-8'))
                 username = connection.recv(1024).decode('utf-8')
 
-                self.users[address[0]] = username
+                self.users[self.address_key(address)] = username
                 self.connections.append(connection)
                 self.broadcast_message("New user connected: %s" % username)
 
@@ -61,7 +61,7 @@ class ChatServer:
     def send_to_peers(self, message: str, address: any, connection: socket.socket):
         for conn in self.connections:
             if conn != connection:
-                formatted_message = ("%s> %s" % (self.users[address[0]], message))
+                formatted_message = ("%s> %s" % (self.get_username(address), message))
 
                 try:
                     conn.send(formatted_message.encode('utf-8'))
@@ -79,6 +79,10 @@ class ChatServer:
                     user_message = data.decode('utf-8')
                     self.send_to_peers(user_message, address, connection)
                 else:
+                    username = self.users[self.address_key(address)]
+                    self.broadcast_message("%s has disconnected" % username)
+                    print("%s has disconnected" % username)
+
                     self.terminate_connection(connection, address)
                     break
 
@@ -109,6 +113,13 @@ class ChatServer:
         self.active = False
         print("Bye!!")
         sys.exit(0)
+
+    @staticmethod
+    def address_key(address):
+        return str(address[0]) + '-' + str(address[1])
+
+    def get_username(self, address):
+        return self.users[self.address_key(address)]
 
 
 if __name__ == "__main__":
