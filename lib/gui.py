@@ -67,10 +67,11 @@ class GUI:
         self.username = None
         self.window.withdraw()
         self.username = simpledialog.askstring(title="Start Chatting", prompt="Enter a username")
-        self.username_label_contents.set("Hello " + self.username)
 
         if self.username is None:
             exit(0)
+        else:
+            self.username_label_contents.set("Hello " + self.username)
 
     def start_chatting(self):
         self.layout_chat_window(self.username)
