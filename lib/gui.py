@@ -56,9 +56,10 @@ class GUI:
 
         self.send_button = Button(master=self.bottom_frame,
                                   text="Send",
+                                  height=2,
                                   command=lambda: self.handle_send(self.message_input.get()))
 
-        self.send_button.pack(side=tkinter.LEFT)
+        self.send_button.pack(side=tkinter.LEFT, anchor=CENTER)
 
         self.request_username()
 
