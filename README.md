@@ -1,6 +1,7 @@
 # Comp3825_chat_server
 The document will cover the design of the chat server.
 
+![demo](https://github.com/Jmiller416/Comp3825_chat_server/blob/Master/demo.png?raw=true)
 
 ## Setup
 
