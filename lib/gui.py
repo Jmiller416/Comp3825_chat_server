@@ -84,8 +84,8 @@ class GUI:
         # Show the chat window
         self.window.deiconify()
         self.window.title("Chat App")
-        self.window.resizable(width=False, height=False)
-        self.window.configure(width=480, height=550, bg="#17202A")
+        self.window.resizable(width=True, height=False)
+        self.window.configure(width=620, height=550, bg="#17202A")
 
         self.chat_contents.config(cursor="arrow")
 

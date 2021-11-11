@@ -3,6 +3,7 @@ import threading
 import configparser
 import signal
 import sys
+import ssl
 
 from typing import Tuple
 
@@ -15,16 +16,20 @@ class ChatServer:
 
         self.host, self.port = self.get_config()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.secureSock = ssl.wrap_socket(self.sock,
+                                          server_side=True,
+                                          certfile='./ssl/server.crt',
+                                          keyfile='./ssl/server.key')
 
     def start(self):
         try:
-            self.sock.bind((self.host, self.port))
-            self.sock.listen(4)
+            self.secureSock.bind((self.host, self.port))
+            self.secureSock.listen(4)
 
             print("Server ready to connect at %s:%d" % (self.host, self.port))
 
             while True:
-                connection, address = self.sock.accept()
+                connection, address = self.secureSock.accept()
                 connection.send("%IDENTIFY".encode('utf-8'))
                 username = connection.recv(1024).decode('utf-8')
 
@@ -43,7 +48,7 @@ class ChatServer:
                 for conn in self.connections:
                     self.terminate_connection(conn, address)
 
-            self.sock.close()
+            self.secureSock.close()
 
     @staticmethod
     def get_config() -> Tuple[str, int]:
@@ -111,6 +116,8 @@ class ChatServer:
 
         self.users = []
         self.active = False
+        self.secureSock.close()
+        self.sock.close()
         print("Bye!!")
         sys.exit(0)
 
