@@ -14,6 +14,7 @@ class ChatServer:
         self.users = {}
         self.active = True
 
+        self.stop_sock = threading.Event()
         self.host, self.port = self.get_config()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.secureSock = ssl.wrap_socket(self.sock,
@@ -39,7 +40,7 @@ class ChatServer:
 
                 print("New user connected: %s" % username)
 
-                threading.Thread(target=self.handler, args=[connection, address]).start()
+                threading.Thread(target=self.handler, args=[connection, address, self.stop_sock]).start()
 
         except Exception as e:
             print(e)
@@ -75,8 +76,8 @@ class ChatServer:
                     print(e)
                     self.terminate_connection(conn, address)
 
-    def handler(self, connection, address):
-        while True:
+    def handler(self, connection, address, stop_sock_event):
+        while not stop_sock_event.is_set():
             try:
                 data = connection.recv(1024)
 
@@ -118,6 +119,7 @@ class ChatServer:
         self.active = False
         self.secureSock.close()
         self.sock.close()
+        self.stop_sock.set()
         print("Bye!!")
         sys.exit(0)
 
