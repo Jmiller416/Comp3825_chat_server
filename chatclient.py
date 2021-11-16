@@ -5,6 +5,7 @@ import configparser
 import shortuuid
 import os
 import time
+import ssl
 
 from typing import Tuple
 
@@ -17,6 +18,7 @@ class ChatClient:
         # Create variables to be used later
         self.identifier = shortuuid.uuid()
         self.sock = socket.socket()
+        self.secureSock = ssl.wrap_socket(self.sock, ca_certs='./ssl/server.crt')
         self.username = self.identifier
         self.encoding = 'utf-8'
         self.disconnect_event = threading.Event()
@@ -37,16 +39,16 @@ class ChatClient:
 
     def receive_messages(self):
         try:
-            last_data = current_client.sock.recv(1024)
+            last_data = current_client.secureSock.recv(1024)
 
             if last_data:
                 last_message = last_data.decode(self.encoding)
                 if last_message == '%IDENTIFY':
-                    current_client.sock.send(current_client.username.encode(self.encoding))
+                    current_client.secureSock.send(current_client.username.encode(self.encoding))
                 else:
                     current_client.gui.message_received(last_message)
             else:
-                os.close(current_client.sock.fileno())
+                os.close(current_client.secureSock.fileno())
 
         except Exception as err:
             print(err)
@@ -55,12 +57,12 @@ class ChatClient:
     def send_message(self, next_message):
         while True:
             if next_message == '.quit' or next_message == '.exit':
-                self.sock.send("has disconnected".encode(self.encoding))
+                self.secureSock.send("has disconnected".encode(self.encoding))
                 self.gui.quit()
             else:
                 encoded_message = next_message.encode(self.encoding)
 
-                self.sock.send(encoded_message)
+                self.secureSock.send(encoded_message)
                 self.debug_print("Sending message: %s" % encoded_message)
             break
 
@@ -92,7 +94,7 @@ class ChatClient:
     def start_chatting(self, username):
         try:
             self.username = username
-            self.sock.connect((self.host, self.port))
+            self.secureSock.connect((self.host, self.port))
 
             self.debug_print("Starting chatting with username: %s" % username)
 
@@ -106,7 +108,7 @@ class ChatClient:
 
     def quit(self):
         self.disconnect_event.set()
-        self.sock.close()
+        self.secureSock.close()
         self.debug_print("Quitting...")
         time.sleep(1)
 
