@@ -5,6 +5,7 @@ import signal
 import sys
 import ssl
 
+from datetime import datetime
 from typing import Tuple
 
 
@@ -27,7 +28,7 @@ class ChatServer:
             self.secureSock.bind((self.host, self.port))
             self.secureSock.listen(4)
 
-            print("Server ready to connect at %s:%d" % (self.host, self.port))
+            ChatServer.print_log_line("Server ready to connect at %s:%d" % (self.host, self.port))
 
             while True:
                 connection, address = self.secureSock.accept()
@@ -38,7 +39,7 @@ class ChatServer:
                 self.connections.append(connection)
                 self.broadcast_message("New user connected: %s" % username)
 
-                print("New user connected: %s" % username)
+                ChatServer.print_log_line("New user connected: %s" % username)
 
                 threading.Thread(target=self.handler, args=[connection, address, self.stop_sock]).start()
 
@@ -73,7 +74,7 @@ class ChatServer:
                     conn.send(formatted_message.encode('utf-8'))
 
                 except Exception as e:
-                    print(e)
+                    ChatServer.print_log_line(e)
                     self.terminate_connection(conn, address)
 
     def handler(self, connection, address, stop_sock_event):
@@ -87,13 +88,13 @@ class ChatServer:
                 else:
                     username = self.users[self.address_key(address)]
                     self.broadcast_message("%s has disconnected" % username)
-                    print("%s has disconnected" % username)
+                    ChatServer.print_log_line("%s has disconnected" % username)
 
                     self.terminate_connection(connection, address)
                     break
 
             except Exception as e:
-                print(e)
+                ChatServer.print_log_line(e)
                 self.terminate_connection(connection, None)
                 break
 
@@ -120,7 +121,7 @@ class ChatServer:
         self.secureSock.close()
         self.sock.close()
         self.stop_sock.set()
-        print("Bye!!")
+        ChatServer.print_log_line("Bye!!")
         sys.exit(0)
 
     @staticmethod
@@ -129,6 +130,11 @@ class ChatServer:
 
     def get_username(self, address):
         return self.users[self.address_key(address)]
+
+    @staticmethod
+    def print_log_line(message):
+        dt_string = datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
+        print(dt_string, message)
 
 
 if __name__ == "__main__":
