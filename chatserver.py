@@ -134,7 +134,7 @@ class ChatServer:
     @staticmethod
     def print_log_line(message):
         dt_string = datetime.now().strftime("%d/%m/%Y %I:%M:%S %p")
-        print(dt_string, message)
+        print(dt_string, "> ", message)
 
 
 if __name__ == "__main__":
